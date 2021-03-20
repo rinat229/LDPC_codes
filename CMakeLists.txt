@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.5)
 project(LDPC)
 
 find_package(OpenCL REQUIRED)
-#find_package(Boost 1.54 REQUIRED)
 include_directories(SYSTEM ${OpenCL_INCLUDE_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
 message(STATUS -> "${OpenCL_LIBRARIES}")

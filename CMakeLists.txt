@@ -15,4 +15,4 @@ target_link_libraries(LDPC_min_sum ${Boost_HEADERS} OpenCL::OpenCL)
 add_executable(boo src/boo.cpp)
 target_link_libraries(boo ${Boost_HEADERS} OpenCL::OpenCL)
 
-#/home/rinat/boost_1_75_0/
+

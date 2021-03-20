@@ -11,7 +11,5 @@ target_link_libraries(LDPC_bit_flipping ${Boost_HEADERS} OpenCL::OpenCL)
 add_executable(LDPC_min_sum src/LDPC_min_sum.cpp)
 target_link_libraries(LDPC_min_sum ${Boost_HEADERS} OpenCL::OpenCL)
 
-add_executable(boo src/boo.cpp)
-target_link_libraries(boo ${Boost_HEADERS} OpenCL::OpenCL)
 
 

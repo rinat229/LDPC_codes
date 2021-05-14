@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.5)
 project(LDPC)
 
 find_package(OpenCL REQUIRED)
-#find_package(Boost 1.54 REQUIRED)
 include_directories(SYSTEM ${OpenCL_INCLUDE_DIRS})
 include_directories(SYSTEM ${Boost_HEADERS})
 #add_library(lib src/matrix_generate.cpp)
@@ -33,3 +32,4 @@ endforeach()
 # target_link_libraries(boo ${Boost_HEADERS} OpenCL::OpenCL)
 
 #-DBoost_HEADERS=/home/rinat/boost_1_75_0
+

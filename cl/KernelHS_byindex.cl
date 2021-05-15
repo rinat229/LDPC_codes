@@ -14,13 +14,13 @@ __kernel void horizontal_step(__global const int *H,
                 if(fabs(codeword[H[i + temp_row * b] % N]) < min){
                     min = fabs(codeword[H[i + temp_row * b] % N]);
                 }
-            sign_product ^= codeword[H[i + temp_row * b] < 0;
+                sign_product ^= codeword[H[i + temp_row * b] % N] < 0;
             }
             for(int i = temp_one_col + 1; i < b; i++){
                 if(fabs(codeword[H[i + temp_row * b] % N]) < min){
                     min = fabs(codeword[H[i + temp_row * b] % N]);                    
                 }
-                sign_product ^= codeword[H[i + temp_row * b] < 0;
+                sign_product ^= codeword[H[i + temp_row * b] % N] < 0;
             }
             E[id] = min * (1- 2 * sign_product);
         }

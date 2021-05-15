@@ -4,7 +4,7 @@ project(LDPC)
 find_package(OpenCL REQUIRED)
 #find_package(Boost 1.54 REQUIRED)
 include_directories(SYSTEM ${OpenCL_INCLUDE_DIRS})
-include_directories(SYSTEM ${Boost_HEADERS})
+include_directories(${Boost_HEADERS})
 
 # add_executable(LDPC_bit_flipping src/LDPC_bit_flipping.cpp)
 # target_link_libraries(LDPC_bit_flipping ${Boost_HEADERS} OpenCL::OpenCL)
@@ -19,7 +19,7 @@ target_link_libraries(LDPC_min_sum_byindex ${Boost_HEADERS} OpenCL::OpenCL)
 set(kernels KernelHS_naive.cl
             KernelHS_byindex.cl
             KernelVS_naive.cl
-            KernelVS_naive.cl
+            KernelVS_byindex.cl
             KernelCheck_naive.cl
             KernelCheck_byindex.cl
             KernelLLR.cl)

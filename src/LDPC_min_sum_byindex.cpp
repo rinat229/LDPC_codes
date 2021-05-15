@@ -45,7 +45,7 @@ int main()
     // b = numbers of ones in a column 
     // l = length of identity matrix circulant
     // n, k = matrix shape
-    int a = 2, b = 3, l = 1000; 
+    int a = 2, b = 3, l = 100; 
 
     size_t n = b * l, k = a * l; 
     int row_num = a * l, col_num = b * l;
@@ -72,7 +72,7 @@ int main()
     compute::vector<int> buffer_check_matrix (check_matrix_of_index.begin(), check_matrix_of_index.end(), queue);
     compute::vector<float> buffer_E (a * b * l, context);
     compute::vector<int> buffer_syndrom (k, context);
-    
+
     compute::program program_fromBitToLLR = compute::program::build_with_source_file("KernelLLR.cl", context);
     compute::program program_horizontal_step = compute::program::build_with_source_file("KernelHS_byindex.cl", context);
     compute::program program_vertical_step = compute::program::build_with_source_file("KernelVS_byindex.cl", context); 

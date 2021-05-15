@@ -1,3 +1,7 @@
+// This decoder uses whole check matrix
+// In other words, all steps run on every element even zeros
+
+
 #define CL_TARGET_OPENCL_VERSION 120
 #include <algorithm>
 #include <iostream>
@@ -18,127 +22,7 @@ namespace compute = boost::compute;
 
 const float mistake_pr = 0.001;
 
-compute::program make_HS_program(const compute::context& context)
-{   
-    const char source[] = BOOST_COMPUTE_STRINGIZE_SOURCE(
-        __kernel void horizontal_step(__global const int *H,
-                          __global const float *codeword,
-                          const int N,
-                          __global float *E)
-        {
-            int id = get_global_id(0);
 
-            if(H[id] == 1){
-                int temp_row = id / N;
-                int temp_col = id % N;
-                float min = 100000;
-                bool sign_product = true;
-                for(int i = 0; i < temp_col; i++){
-                    if(fabs(codeword[i] * H[i + temp_row * N]) < min && H[i + temp_row * N] != 0)
-                        min = fabs(codeword[i] * H[i + temp_row * N]);
-                    if(codeword[i] < 0 && H[i + temp_row * N] != 0) 
-                            sign_product *= -1;
-                    
-                }
-                for(int i = temp_col + 1; i < N; i++){
-                    if(fabs(codeword[i] * H[i + temp_row * N]) < min && H[i + temp_row * N] != 0)
-                        min = fabs(codeword[i] * H[i + temp_row * N]);
-                    if(codeword[i] < 0 && H[i + temp_row * N] != 0) 
-                            sign_product *= -1;
-                    
-                }
-                E[id] = min * sign_product;
-            }
-            else {
-                E[id] = 0; }
-        }
-    );
-    
-    return compute::program::build_with_source_file(source, context);
-}
-
-// * * * * 
-//  syndrom check
-// * * * * 
-
-compute::program make_check_program(const compute::context& context)
-{
-    const char source[] = BOOST_COMPUTE_STRINGIZE_SOURCE(
-        __kernel void check(__global const int *H,
-                          __global const int *codeword,
-                          const int N,
-                          __global int *syndrom)
-        {
-            int id = get_global_id(0);
-
-            int acc = 0;
-            for(int i = 0; i < N; i++){
-                acc = (codeword[i] * H[id * N + i]) ^ acc;
-            }
-            
-            syndrom[id] = acc;
-        }
-    );
-    
-    return compute::program::build_with_source(source, context);
-}
-
-// * * * * 
-//  vertical step
-// * * * *
-
-compute::program make_VS_program(const compute::context& context)
-{
-    const char source[] = BOOST_COMPUTE_STRINGIZE_SOURCE(
-        __kernel void vertical_step(
-                          __global float *codeword,
-                          const int N,
-                          const int K,
-                          __global float *E)
-        {
-            int id = get_global_id(0);
-            float acc = 0;
-
-            for(int i = 0; i < K; i++){
-                acc += E[id + i * N];
-            }
-
-            if (codeword[id] + acc > 0)
-                codeword[id] = 0;
-            else 
-                codeword[id] = 1;
-        }
-    );
-    
-    return compute::program::build_with_source(source, context);
-}
-
-// * * * * 
-//  from bit to LLR
-// * * * *
-
-compute::program make_fromBitToLLR_program(const compute::context& context)
-{
-    const char source[] = BOOST_COMPUTE_STRINGIZE_SOURCE(
-        __kernel void fromBitToLLR(
-                          __global float *codeword)
-
-        {
-            int id = get_global_id(0);
-            //printf("\nhi i am inside gpu of thread %d ", codeword[id]);
-            const float mistake_pr = 0.2;
-            if(codeword[id] == 0){
-                codeword[id] = log((1 - mistake_pr) / mistake_pr);
-            }
-            else {
-                codeword[id] = log(mistake_pr / (1 - mistake_pr));
-            }
-            
-        }
-    );
-     
-    return compute::program::build_with_source(source, context);
-}
 void mistake_generate(std::vector<float> &codeword){
     srand(time(0));
     for(auto &a : codeword){
@@ -158,28 +42,30 @@ int main()
     
     // matrix parameters 
     // a = numbers of ones in a row
-    // b * l = numbers of ones in a column 
+    // b = numbers of ones in a column 
+    // l = length of identity matrix circulant
+    // n, k = matrix shape
     int a = 2, b = 3, l = 1000; 
 
     size_t n = b * l, k = a * l; 
     int row_num = a * l, col_num = b * l;
-    //check matrix = [1  1  0  1  0  0]
-    //               [0  1  1  0  1  0]
-    //               [1  0  0  0  1  1]
-    //               [0  0  1  1  0  1]
+
     std::vector<float> codeword(n);
     std::vector<int> check_matrix(n * k);
     check_matrix_generate(a, b, l, check_matrix);
     {
+        // generating codeword by eliminating a check matrix to gen matrix
         std::vector<int> check_matrix_copy(row_num * col_num);
         check_matrix_copy = check_matrix;
         gen_matrix(row_num, col_num, check_matrix_copy);
         codeword_generate(row_num, col_num, codeword, check_matrix_copy);
     }
-
+    // making an error
     mistake_generate(codeword);
-
+    // Matrix E uses for finding minimal element and a sign product of nonzero elements in a row
     std::vector<float> E (n * k);
+    // syndrom is equal H^T * codeword
+    // codeword belongs codeword's space if syndrom is a zero vector
     std::vector<int> syndrom (k);
 
     compute::vector<float> buffer_codeword (codeword.begin(), codeword.end(), queue);
@@ -218,6 +104,8 @@ int main()
     int MAXiterations = 100;
     bool exit = true;
     Timer timer;
+
+    // computing a syndrom and checking on equality to a zero
     for(iterations_number; iterations_number < MAXiterations; iterations_number++){
         queue.enqueue_1d_range_kernel(kernel_check, 0, k, 0);
         compute::copy(buffer_syndrom.begin(), buffer_syndrom.end(), syndrom.begin(), queue);    

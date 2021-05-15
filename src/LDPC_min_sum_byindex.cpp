@@ -1,3 +1,8 @@
+// This version differ from previous by using matrix of indixes
+// Matrix of indixes contains a * b * l elements (indixes)
+// instead of a * b * l * l elements in check matrix
+
+
 #define CL_TARGET_OPENCL_VERSION 120
 #include <algorithm>
 #include <iostream>
@@ -38,38 +43,29 @@ int main()
     // matrix parameters 
     // a = numbers of ones in a row
     // b = numbers of ones in a column 
+    // l = length of identity matrix circulant
+    // n, k = matrix shape
     int a = 2, b = 3, l = 1000; 
 
     size_t n = b * l, k = a * l; 
     int row_num = a * l, col_num = b * l;
-    //check matrix = [1  1  0  1  0  0]
-    //               [0  1  1  0  1  0]
-    //               [1  0  0  0  1  1]
-    //               [0  0  1  1  0  1]
+
     std::vector<float> codeword(n);
     std::vector<int> check_matrix_of_index(a * b * l);
     {
+        // generating codeword by eliminating a check matrix to gen matrix
         std::vector<int> check_matrix(n * k);
         check_matrix_generate_with_idxMatrix(a, b, l, check_matrix, check_matrix_of_index);
         gen_matrix(row_num, col_num, check_matrix);
         codeword_generate(row_num, col_num, codeword, check_matrix);
     }
-    /*std::cout << "right codeword" << std::endl;
-    for(auto &a : codeword)
-        std::cout << a << " ";
-    std::cout << std::endl;*/
+    // making an error
     mistake_generate(codeword);
     std::sort(check_matrix_of_index.begin(), check_matrix_of_index.end());
-    /*for(auto &a : check_matrix_of_index)
-        std::cout << a << " ";
-    std::cout << std::endl;*/
-    /*std::cout << "codeword after transmission on BSC" << std::endl;
-    for(auto &a : codeword)
-        std::cout << a << " ";
-    std::cout << std::endl;*/
-
-
+    // Matrix E uses for finding minimal element and a sign product of nonzero elements in a row
     std::vector<float> E (a * b * l);
+    // syndrom is equal H^T * codeword
+    // codeword belongs codeword's space if syndrom is a zero vector
     std::vector<int> syndrom (k);
 
     compute::vector<float> buffer_codeword (codeword.begin(), codeword.end(), queue);
@@ -114,7 +110,8 @@ int main()
     int MAXiterations = 100;
     bool exit = true;
     Timer timer;
-    // queue.enqueue_1d_range_kernel(kernel_check, 0, a, 0);
+
+    // computing a syndrom and checking on equality to a zero
     for(iterations_number; iterations_number < MAXiterations; iterations_number++){
         queue.enqueue_1d_range_kernel(kernel_check, 0, k, 0);
         compute::copy(buffer_syndrom.begin(), buffer_syndrom.end(), syndrom.begin(), queue);    
@@ -132,14 +129,8 @@ int main()
         }
         else break;  
     }
+
     timer.Stop();
-    compute::copy(buffer_codeword.begin(), buffer_codeword.end(), codeword.begin(), queue);
-    /*std::cout << "codeword after MinSum" << std::endl;    
-    for(auto &a : codeword)
-        std::cout << a << " ";*/
-    compute::copy(buffer_E.begin(), buffer_E.end(), E.begin(), queue);        
-    /*for(auto &a : E)
-        std::cout << a << " ";*/
     std::cout << std::endl << "number of iterations - " << iterations_number << std::endl;
     return 0;
 }

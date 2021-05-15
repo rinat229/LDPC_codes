@@ -11,7 +11,7 @@
 namespace compute = boost::compute;
 
 // * * * * 
-//  horizontal step
+//  vertical step
 // * * * * 
 
 compute::program make_HS_program(const compute::context& context)

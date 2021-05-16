@@ -22,5 +22,5 @@ __kernel void horizontal_step(__global const int *H,
                 }
                 sign_product ^= codeword[H[i + temp_row * b] % N] < 0;
             }
-            E[id] = min * (1- 2 * sign_product);
+            E[id] = min * (2 * sign_product - 1);
         }
